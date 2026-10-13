@@ -1,0 +1,200 @@
+<Window x:Class="MusicScheduler.Views.TaskEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:MusicScheduler.Converters"
+        Title="{Binding WindowTitle}"
+        Height="720" Width="780"
+        Style="{StaticResource DarkWindowStyle}"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize">
+    <Window.Resources>
+        <conv:RepeatKindToVisibilityConverter x:Key="KindToVis"/>
+        <conv:CountToVisibilityConverter x:Key="CountToVis"/>
+    </Window.Resources>
+
+    <Grid Margin="28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" Grid.RowSpan="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 名称 -->
+                <TextBlock Text="任务名称" FontSize="12" Foreground="{StaticResource TextTertiary}" Margin="0,0,0,6"/>
+                <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <!-- 时间设置 -->
+                <TextBlock Text="定时设置（精确到秒）" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,24,0,10"/>
+                <Border Style="{StaticResource CardBorder}" Padding="18">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="开始时间" FontSize="12" Foreground="{StaticResource TextTertiary}" Margin="0,0,0,6"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding StartTime, StringFormat=hh\\:mm\\:ss}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="结束时间" FontSize="12" Foreground="{StaticResource TextTertiary}" Margin="0,0,0,6"/>
+                            <TextBox Style="{StaticResource DarkTextBox}" Text="{Binding EndTime, StringFormat=hh\\:mm\\:ss}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <TextBlock Text="提示：时间格式 HH:MM:SS，例如 09:30:00" FontSize="11" Foreground="{StaticResource TextTertiary}" Margin="6,6,0,0"/>
+
+                <!-- 重复规则 -->
+                <TextBlock Text="重复规则" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,24,0,10"/>
+                <Border Style="{StaticResource CardBorder}" Padding="18">
+                    <StackPanel>
+                        <ComboBox x:Name="RepeatKindCombo" SelectedIndex="{Binding RepeatKindIndex}" Style="{StaticResource DarkComboBox}">
+                            <ComboBoxItem Content="一次性（指定日期）"/>
+                            <ComboBoxItem Content="每天"/>
+                            <ComboBoxItem Content="每周（指定星期几）"/>
+                        </ComboBox>
+
+                        <!-- 一次性日期 -->
+                        <StackPanel Margin="0,12,0,0" Visibility="{Binding SelectedIndex, ElementName=RepeatKindCombo, Converter={StaticResource KindToVis}, ConverterParameter=0}">
+                            <TextBlock Text="选择日期" FontSize="12" Foreground="{StaticResource TextTertiary}" Margin="0,0,0,6"/>
+                            <DatePicker SelectedDate="{Binding OnceDate}" Style="{StaticResource DarkDatePicker}"/>
+                        </StackPanel>
+
+                        <!-- 每周 -->
+                        <StackPanel Margin="0,12,0,0" Visibility="{Binding SelectedIndex, ElementName=RepeatKindCombo, Converter={StaticResource KindToVis}, ConverterParameter=2}">
+                            <TextBlock Text="选择星期几" FontSize="12" Foreground="{StaticResource TextTertiary}" Margin="0,0,0,6"/>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Style="{StaticResource DayCheckBox}" Content="周日" IsChecked="{Binding Sunday}"/>
+                                <CheckBox Style="{StaticResource DayCheckBox}" Content="周一" IsChecked="{Binding Monday}"/>
+                                <CheckBox Style="{StaticResource DayCheckBox}" Content="周二" IsChecked="{Binding Tuesday}"/>
+                                <CheckBox Style="{StaticResource DayCheckBox}" Content="周三" IsChecked="{Binding Wednesday}"/>
+                                <CheckBox Style="{StaticResource DayCheckBox}" Content="周四" IsChecked="{Binding Thursday}"/>
+                                <CheckBox Style="{StaticResource DayCheckBox}" Content="周五" IsChecked="{Binding Friday}"/>
+                                <CheckBox Style="{StaticResource DayCheckBox}" Content="周六" IsChecked="{Binding Saturday}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 播放列表 -->
+                <TextBlock Text="播放列表" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}" Margin="0,24,0,10"/>
+                <Border Style="{StaticResource CardBorder}" Padding="18">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource AccentButton}" Content="+ 添加音乐" Command="{Binding AddFilesCommand}"/>
+                            <Button Style="{StaticResource BaseButton}" Content="📚 另存为播放列表" Margin="8,0,0,0" Command="{Binding SaveAsPlayListCommand}"/>
+                            <TextBlock Text="支持 MP3 / AAC / M4A / FLAC / WAV / WMA" FontSize="11" Foreground="{StaticResource TextTertiary}" VerticalAlignment="Center" Margin="14,0,0,0"/>
+                        </StackPanel>
+
+                        <!-- 播放列表库（可插入） -->
+                        <Border Background="{StaticResource BgPrimary}" CornerRadius="6" Margin="0,12,0,0" Padding="10,8"
+                                Visibility="{Binding AvailablePlayLists.Count, Converter={StaticResource CountToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="📚 播放列表库（点击插入）" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentLighter}" Margin="0,0,0,6"/>
+                                <ItemsControl ItemsSource="{Binding AvailablePlayLists}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="14" Padding="10,5" Margin="0,0,6,0" Cursor="Hand">
+                                                <Border.InputBindings>
+                                                    <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.InsertFromPlayListCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                </Border.InputBindings>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
+                                                    <TextBlock Text="{Binding TrackCount, StringFormat= ({0})}" FontSize="11" Foreground="{StaticResource TextTertiary}" Margin="2,0,0,0"/>
+                                                    <Button Style="{StaticResource ListItemButton}" Content="×" Margin="8,0,0,0" Padding="4,0" MinWidth="20"
+                                                            Command="{Binding DataContext.DeletePlayListCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Background="{StaticResource BgPrimary}" CornerRadius="6" Margin="0,12,0,0" MinHeight="120" MaxHeight="220">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding Tracks}" Margin="6">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{StaticResource BgCard}" CornerRadius="6" Padding="10,6" Margin="2">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding FilePath}" FontSize="12" Foreground="{StaticResource TextPrimary}" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock FontSize="10">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{StaticResource TextTertiary}"/>
+                                                                    <Setter Property="Text" Value="{Binding Exists, StringFormat=文件存在：{0}}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Exists}" Value="False">
+                                                                            <Setter Property="Foreground" Value="{StaticResource Danger}"/>
+                                                                            <Setter Property="Text" Value="⚠ 文件不存在"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Button Style="{StaticResource ListItemButton}" Content="↑" Command="{Binding DataContext.MoveUpCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                        <Button Style="{StaticResource ListItemButton}" Content="↓" Margin="4,0,0,0" Command="{Binding DataContext.MoveDownCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                        <Button Style="{StaticResource ListItemButton}" Content="移除" Margin="4,0,0,0" Command="{Binding DataContext.RemoveTrackCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                        <TextBlock Text="播放模式" FontSize="12" Foreground="{StaticResource TextTertiary}" Margin="0,14,0,6"/>
+                        <ComboBox SelectedIndex="{Binding PlaybackModeIndex}" Style="{StaticResource DarkComboBox}">
+                            <ComboBoxItem Content="顺序播放（播完停止，等下一次任务）"/>
+                            <ComboBoxItem Content="循环播放（列表循环直到结束时间）"/>
+                        </ComboBox>
+                        <TextBlock Text="均衡模式" FontSize="12" Foreground="{StaticResource TextTertiary}" Margin="0,14,0,6"
+                                   ToolTip="选择本任务播放时使用的均衡器预设，留空则跟随全局设置"/>
+                        <ComboBox x:Name="EqPresetCombo" SelectedIndex="{Binding EqPresetIndex}" Style="{StaticResource DarkComboBox}"
+                                  ItemsSource="{Binding EqPresetOptions}">
+                            <ComboBox.ItemContainerStyle>
+                                <Style TargetType="ComboBoxItem">
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Style>
+                            </ComboBox.ItemContainerStyle>
+                        </ComboBox>
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <TextBlock Text="启用此任务" FontSize="13" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center"/>
+                            <ToggleButton Style="{StaticResource SwitchToggle}" IsChecked="{Binding IsEnabled}" Margin="12,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- 冲突提示 -->
+                <Border Background="#33FF5252" BorderBrush="{StaticResource Danger}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,16,0,0"
+                        Visibility="{Binding HasConflict, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+                        <TextBlock Text="⚠ 检测到时间冲突，无法保存" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource Danger}"/>
+                        <TextBlock Text="{Binding ConflictMessage}" FontSize="12" Foreground="{StaticResource TextPrimary}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 底部按钮 -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+            <Button Style="{StaticResource BaseButton}" Content="取消" Width="100" Click="Cancel_Click"/>
+            <Button Style="{StaticResource AccentButton}" Content="保存" Width="120" Margin="12,0,0,0" Click="Save_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

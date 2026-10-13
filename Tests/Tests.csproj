@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>MusicScheduler.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\MusicScheduler\Models\*.cs" />
+    <Compile Include="..\MusicScheduler\Services\ConflictDetector.cs" />
+    <Compile Include="..\MusicScheduler\Services\Logger.cs" />
+    <Compile Include="..\MusicScheduler\Services\PlayListStore.cs" />
+    <Compile Include="..\MusicScheduler\Services\TaskStore.cs" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,5 @@
+﻿dist/
+.codebuddy/
+node_modules/
+bin/
+obj/

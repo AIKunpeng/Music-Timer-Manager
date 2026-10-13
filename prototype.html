@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音乐定时管家 - HTML 原型（版权所有 © 张巍强）</title>
+<style>
+  :root {
+    --bg-primary: #1E1E2E;
+    --bg-secondary: #2A2A3C;
+    --bg-tertiary: #34344A;
+    --bg-card: #2D2D40;
+    --bg-elevated: #3A3A50;
+    --bg-hover: #3F3F58;
+    --text-primary: #FFFFFF;
+    --text-secondary: #C8C8D4;
+    --text-tertiary: #8888A0;
+    --accent: #6C5CE7;
+    --accent-light: #8E7CF3;
+    --accent-lighter: #A29BFE;
+    --success: #4CAF50;
+    --danger: #FF5252;
+    --warning: #FFB300;
+    --border: #3A3A52;
+    --border-hover: #5C5C7A;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 13px;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ============ 顶部导航栏 ============ */
+  .navbar {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-logo {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #6C5CE7, #A29BFE);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: white; font-weight: bold;
+    box-shadow: 0 0 16px rgba(108,92,231,.45);
+  }
+  .brand-name { font-size: 20px; font-weight: 600; }
+  .brand-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .clock {
+    background: var(--bg-elevated);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 15px; font-weight: 500;
+    color: var(--accent-lighter);
+    font-family: Consolas, "Microsoft YaHei UI", monospace;
+    letter-spacing: .5px;
+  }
+
+  /* ============ 按钮体系 ============ */
+  .btn {
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s ease;
+  }
+  .btn:hover { background: var(--bg-hover); border-color: var(--border-hover); }
+  .btn:active { background: var(--bg-tertiary); transform: scale(.97); }
+  .btn-accent {
+    background: linear-gradient(135deg, #6C5CE7, #A29BFE);
+    border: none; color: white; font-weight: 600;
+  }
+  .btn-accent:hover { opacity: .88; background: linear-gradient(135deg, #6C5CE7, #A29BFE); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; min-width: 56px; }
+  .btn-danger-ghost { color: var(--danger); }
+
+  /* ============ 主体 ============ */
+  .main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 16px;
+    padding: 20px 24px;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ---- 播放器面板 ---- */
+  .player-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex; flex-direction: column;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+  .panel-label { font-size: 13px; color: var(--text-tertiary); font-weight: 500; }
+  .cover {
+    margin-top: 16px;
+    height: 210px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6C5CE7, #8E7CF3 50%, #A29BFE);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(108,92,231,.45);
+    transition: box-shadow .4s ease;
+  }
+  .cover.playing { animation: breathe 2.4s ease-in-out infinite; }
+  @keyframes breathe {
+    0%, 100% { box-shadow: 0 0 32px rgba(108,92,231,.4); }
+    50% { box-shadow: 0 0 56px rgba(162,155,254,.75); }
+  }
+  .cover::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,.22), transparent 55%);
+  }
+  .cover-note { font-size: 88px; color: rgba(255,255,255,.9); position: relative; z-index: 1; }
+  .now-title { font-size: 18px; font-weight: 600; margin-top: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .now-task { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+
+  .progress-wrap { margin-top: 16px; }
+  .progress {
+    height: 6px; border-radius: 3px;
+    background: var(--bg-elevated);
+    overflow: hidden; cursor: pointer;
+  }
+  .progress-bar {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #6C5CE7, #A29BFE);
+    border-radius: 3px;
+    transition: width .4s linear;
+  }
+  .progress-times { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--text-tertiary); font-family: Consolas, monospace; }
+
+  .controls { display: flex; justify-content: center; align-items: center; margin-top: 18px; gap: 6px; }
+  .ctrl-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: transparent; border: none; cursor: pointer;
+    font-size: 18px; color: var(--text-primary);
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s ease;
+  }
+  .ctrl-btn:hover { background: var(--bg-elevated); }
+  .ctrl-btn:active { transform: scale(.92); }
+  .ctrl-btn.play {
+    width: 52px; height: 52px; margin: 0 8px;
+    background: linear-gradient(135deg, #6C5CE7, #A29BFE);
+    color: white; font-size: 21px;
+    box-shadow: 0 4px 16px rgba(108,92,231,.5);
+  }
+  .ctrl-btn.play:hover { opacity: .9; }
+  .ctrl-btn.stop { color: var(--danger); }
+
+  .volume-wrap { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+  .volume-icon { font-size: 13px; color: var(--text-tertiary); }
+  .volume-slider {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px;
+    background: var(--bg-elevated);
+    outline: none; cursor: pointer;
+  }
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent-lighter);
+    box-shadow: 0 0 8px rgba(162,155,254,.6);
+    cursor: pointer;
+  }
+  .volume-value { font-size: 11px; color: var(--text-tertiary); min-width: 32px; text-align: right; font-family: Consolas, monospace; }
+
+  /* ---- 任务列表 ---- */
+  .tasks-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    min-height: 0;
+  }
+  .tasks-header {
+    padding: 16px 20px 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+  }
+  .tasks-title { font-size: 16px; font-weight: 600; }
+  .tasks-next { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; }
+  .tasks-scroll { flex: 1; overflow-y: auto; padding: 0 20px 20px; }
+  .tasks-scroll::-webkit-scrollbar { width: 8px; }
+  .tasks-scroll::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 4px; }
+
+  .task-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px;
+    transition: all .15s ease;
+    animation: fadeIn .25s ease both;
+  }
+  .task-card:hover { border-color: var(--border-hover); background: #31314a; transform: translateX(2px); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+  .task-info { min-width: 0; }
+  .task-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .task-name { font-size: 15px; font-weight: 600; }
+  .task-badge {
+    background: var(--bg-elevated);
+    color: var(--accent-lighter);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .task-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
+  .task-meta .time { font-family: Consolas, "Microsoft YaHei UI", monospace; color: var(--text-secondary); }
+  .task-meta .sep { color: var(--text-tertiary); }
+  .task-status { color: var(--text-secondary); }
+  .task-status.active { color: var(--success); }
+
+  .task-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+  /* 开关 */
+  .switch {
+    position: relative; width: 42px; height: 22px;
+    background: #4A4A60; border-radius: 11px;
+    cursor: pointer; transition: background .2s ease; flex-shrink: 0;
+  }
+  .switch::after {
+    content: '';
+    position: absolute; left: 2px; top: 2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: white;
+    transition: left .2s ease;
+  }
+  .switch.on { background: linear-gradient(135deg, #6C5CE7, #A29BFE); }
+  .switch.on::after { left: 22px; }
+
+  .empty-state {
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; color: var(--text-tertiary); gap: 8px; padding: 40px 0;
+  }
+  .empty-state.show { display: flex; }
+  .empty-state .icon { font-size: 42px; opacity: .5; }
+
+  /* ============ 底部状态栏 ============ */
+  .statusbar {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+    font-size: 12px;
+  }
+  .status-left { color: var(--text-secondary); }
+  .status-left .playing-dot {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--success); margin-right: 6px;
+    animation: pulse 1.6s ease infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+  .status-copy { font-size: 11px; color: var(--text-tertiary); }
+
+  /* ============ 模态框 ============ */
+  .modal-mask {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(14,14,22,.68);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-mask.show { display: flex; }
+  .modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: min(720px, 92vw);
+    max-height: 88vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0,0,0,.55);
+    animation: modalIn .22s cubic-bezier(.2,.9,.3,1.2) both;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(.94) translateY(12px); } to { opacity: 1; } }
+  .modal-body { padding: 24px 28px; overflow-y: auto; }
+  .modal-body::-webkit-scrollbar { width: 8px; }
+  .modal-body::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 4px; }
+  .modal-footer {
+    padding: 16px 28px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 12px;
+  }
+
+  .section-title { font-size: 14px; font-weight: 600; margin: 20px 0 10px; }
+  .section-title:first-child { margin-top: 0; }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .field-label { font-size: 12px; color: var(--text-tertiary); margin-bottom: 6px; display: block; }
+  .input, .select {
+    width: 100%;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .input:focus, .select:focus { border-color: var(--accent-light); }
+  .input.time { font-family: Consolas, monospace; letter-spacing: 1px; }
+  .input.invalid { border-color: var(--danger); }
+  .hint { font-size: 11px; color: var(--text-tertiary); margin: 6px 2px 0; }
+
+  .week-days { display: flex; gap: 14px; flex-wrap: wrap; }
+  .week-day { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; user-select: none; }
+  .week-day .cb {
+    width: 18px; height: 18px; border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: white; transition: all .15s;
+  }
+  .week-day.checked .cb { background: var(--accent); border-color: var(--accent-light); }
+  .week-day.checked .cb::after { content: '✓'; }
+
+  .track-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    display: flex; justify-content: space-between; align-items: center;
+    animation: fadeIn .2s ease both;
+  }
+  .track-item:hover { border-color: var(--border-hover); }
+  .track-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+  .track-missing { font-size: 10px; color: var(--danger); margin-top: 2px; }
+  .track-exists { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+  .track-mini-actions { display: flex; gap: 4px; }
+
+  /* 冲突提示 */
+  .conflict-box {
+    display: none;
+    background: rgba(255,82,82,.16);
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 14px;
+  }
+  .conflict-box.show { display: block; animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  .conflict-title { font-size: 13px; font-weight: 600; color: var(--danger); }
+  .conflict-detail { font-size: 12px; margin-top: 6px; line-height: 1.7; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 56px; right: 24px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-hover);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-size: 13px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.5);
+    z-index: 200;
+    opacity: 0; transform: translateY(12px);
+    transition: all .25s ease;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.danger { border-left-color: var(--danger); }
+  .toast.success { border-left-color: var(--success); }
+
+  /* 设置/关于 */
+  .setting-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0;
+  }
+  .setting-row + .setting-row { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px; }
+  .setting-name { font-size: 14px; font-weight: 600; }
+  .setting-desc { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+
+  .about-hero { text-align: center; padding: 12px 0 4px; }
+  .about-logo {
+    width: 84px; height: 84px; border-radius: 50%;
+    background: linear-gradient(135deg, #6C5CE7, #A29BFE);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 44px; color: white;
+    box-shadow: 0 0 32px rgba(108,92,231,.55);
+  }
+  .about-name { font-size: 22px; font-weight: 600; margin-top: 16px; }
+  .about-ver { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+  .copyright-box {
+    background: rgba(108,92,231,.14);
+    border: 1px solid rgba(108,92,231,.35);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 12px;
+  }
+  .copyright-main { font-size: 15px; font-weight: 600; }
+  .copyright-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+
+  /* 播放列表编辑区 */
+  .playlist-box {
+    background: var(--bg-primary);
+    border-radius: 6px;
+    min-height: 120px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 8px;
+    margin-top: 10px;
+  }
+  .playlist-box::-webkit-scrollbar { width: 8px; }
+  .playlist-box::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 4px; }
+
+  /* 模式选择（启用开关行） */
+  .enable-row { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+
+  /* 响应式 */
+  @media (max-width: 980px) {
+    .main { grid-template-columns: 1fr; overflow-y: auto; }
+    .player-panel { order: 2; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== 顶部导航栏 ==================== -->
+<header class="navbar">
+  <div class="brand">
+    <div class="brand-logo">♪</div>
+    <div>
+      <div class="brand-name">音乐定时管家</div>
+      <div class="brand-sub">智能定时 · 精准播放 · 全自动调度</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="clock" id="clock">2026-10-10&nbsp;&nbsp;00:00:00</div>
+    <button class="btn" onclick="openModal('settingsModal')">⚙ 设置</button>
+    <button class="btn" onclick="openModal('aboutModal')">ⓘ 关于</button>
+  </div>
+</header>
+
+<!-- ==================== 主体 ==================== -->
+<main class="main">
+
+  <!-- 播放器面板 -->
+  <section class="player-panel">
+    <div class="panel-label">正在播放</div>
+    <div class="cover" id="cover">
+      <span class="cover-note">♪</span>
+    </div>
+    <div class="now-title" id="nowTitle">（未播放）</div>
+    <div class="now-task" id="nowTask">等待定时任务触发…</div>
+
+    <div class="progress-wrap">
+      <div class="progress" id="progress" onclick="seekProgress(event)">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-times">
+        <span id="posTime">0:00</span>
+        <span id="durTime">0:00</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl-btn" title="上一首" onclick="toast('切换上一首（原型演示）')">⏮</button>
+      <button class="ctrl-btn play" id="playBtn" onclick="togglePlay()">▶</button>
+      <button class="ctrl-btn" title="下一首" onclick="toast('切换下一首（原型演示）')">⏭</button>
+      <button class="ctrl-btn stop" title="停止播放" onclick="stopPlayback()">⏹</button>
+    </div>
+
+    <div class="volume-wrap">
+      <span class="volume-icon">🔊</span>
+      <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="70"
+             oninput="document.getElementById('volumeValue').textContent = this.value">
+      <span class="volume-value" id="volumeValue">70</span>
+    </div>
+  </section>
+
+  <!-- 任务列表面板 -->
+  <section class="tasks-panel">
+    <div class="tasks-header">
+      <div>
+        <div class="tasks-title">播放任务</div>
+        <div class="tasks-next" id="nextTaskText">暂无待执行任务</div>
+      </div>
+      <button class="btn btn-accent" onclick="openTaskEdit(null)">＋ 新建任务</button>
+    </div>
+    <div class="tasks-scroll">
+      <div id="taskList"></div>
+      <div class="empty-state" id="emptyState">
+        <div class="icon">📋</div>
+        <div>还没有任务</div>
+        <div style="font-size:12px">点击右上角「＋ 新建任务」开始使用</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ==================== 底部状态栏 ==================== -->
+<footer class="statusbar">
+  <div class="status-left" id="statusText"><span style="color:var(--text-tertiary)">就绪</span></div>
+  <div class="status-copy">© 2026 音乐定时管家　版权所有 张巍强</div>
+</footer>
+
+<!-- ==================== 任务编辑模态框 ==================== -->
+<div class="modal-mask" id="taskEditModal">
+  <div class="modal">
+    <div class="modal-body">
+      <div class="section-title" id="taskEditTitle">新建播放任务</div>
+
+      <div>
+        <label class="field-label">任务名称</label>
+        <input class="input" id="fName" placeholder="例如：晨间背景音乐" value="新任务">
+      </div>
+
+      <div class="section-title">⏱ 定时设置（精确到秒）</div>
+      <div class="card">
+        <div class="form-row">
+          <div>
+            <label class="field-label">开始时间（时:分:秒）</label>
+            <input class="input time" id="fStart" value="09:00:00" placeholder="HH:MM:SS">
+          </div>
+          <div>
+            <label class="field-label">结束时间（时:分:秒）</label>
+            <input class="input time" id="fEnd" value="10:00:00" placeholder="HH:MM:SS">
+          </div>
+        </div>
+        <div class="hint">时间格式 HH:MM:SS，例如 09:30:00 表示 9 点 30 分 0 秒开始</div>
+      </div>
+
+      <div class="section-title">🔁 重复规则</div>
+      <div class="card">
+        <select class="select" id="fRepeat" onchange="onRepeatChange()">
+          <option value="once">一次性（指定日期）</option>
+          <option value="daily" selected>每天</option>
+          <option value="weekly">每周（指定星期几）</option>
+        </select>
+        <div id="onceBox" style="display:none; margin-top:12px">
+          <label class="field-label">选择日期</label>
+          <input class="input" type="date" id="fDate">
+        </div>
+        <div id="weekBox" style="display:none; margin-top:12px">
+          <label class="field-label">选择星期几</label>
+          <div class="week-days" id="weekDays">
+            <span class="week-day" data-day="0"><span class="cb"></span>周日</span>
+            <span class="week-day" data-day="1"><span class="cb"></span>周一</span>
+            <span class="week-day" data-day="2"><span class="cb"></span>周二</span>
+            <span class="week-day" data-day="3"><span class="cb"></span>周三</span>
+            <span class="week-day" data-day="4"><span class="cb"></span>周四</span>
+            <span class="week-day" data-day="5"><span class="cb"></span>周五</span>
+            <span class="week-day" data-day="6"><span class="cb"></span>周六</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">🎵 播放列表</div>
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:14px">
+          <button class="btn btn-accent btn-sm" onclick="addDemoTrack()">＋ 添加音乐</button>
+          <span class="hint" style="margin:0">支持 MP3 / AAC / M4A / FLAC / WAV / WMA</span>
+        </div>
+        <div class="playlist-box" id="playlistBox">
+          <div class="track-item">
+            <div>
+              <div class="track-name">D:\\Music\\清晨.mp3</div>
+              <div class="track-exists">文件存在 · 时长 3:42</div>
+            </div>
+            <div class="track-mini-actions">
+              <button class="btn btn-sm" onclick="toast('上移（原型演示）')">↑</button>
+              <button class="btn btn-sm" onclick="toast('下移（原型演示）')">↓</button>
+              <button class="btn btn-sm" onclick="this.closest('.track-item').remove(); updateTrackCount()">移除</button>
+            </div>
+          </div>
+          <div class="track-item">
+            <div>
+              <div class="track-name">D:\\Music\\午后时光.flac</div>
+              <div class="track-exists">文件存在 · 时长 5:08</div>
+            </div>
+            <div class="track-mini-actions">
+              <button class="btn btn-sm" onclick="toast('上移（原型演示）')">↑</button>
+              <button class="btn btn-sm" onclick="toast('下移（原型演示）')">↓</button>
+              <button class="btn btn-sm" onclick="this.closest('.track-item').remove(); updateTrackCount()">移除</button>
+            </div>
+          </div>
+        </div>
+        <div class="hint" id="trackCount">共 2 首</div>
+
+        <label class="field-label" style="margin-top:14px">播放模式</label>
+        <select class="select" id="fMode">
+          <option value="sequential">顺序播放（播完停止，等下一次任务）</option>
+          <option value="loop">循环播放（列表循环直到结束时间）</option>
+        </select>
+
+        <div class="enable-row">
+          <span style="font-size:13px; color:var(--text-secondary)">启用此任务</span>
+          <div class="switch on" id="fEnabled" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+
+      <!-- 冲突提示 -->
+      <div class="conflict-box" id="conflictBox">
+        <div class="conflict-title">⚠ 检测到时间冲突，无法保存</div>
+        <div class="conflict-detail" id="conflictDetail"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="width:100px" onclick="closeModal('taskEditModal')">取消</button>
+      <button class="btn btn-accent" style="width:120px" onclick="saveTask()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 设置模态框 ==================== -->
+<div class="modal-mask" id="settingsModal">
+  <div class="modal" style="width:min(480px,92vw)">
+    <div class="modal-body">
+      <div style="font-size:20px; font-weight:600">设置</div>
+      <div style="font-size:12px; color:var(--text-tertiary); margin-top:4px">个性化你的音乐定时管家</div>
+
+      <div class="card" style="margin-top:20px">
+        <div class="setting-row">
+          <div>
+            <div class="setting-name">开机自启</div>
+            <div class="setting-desc">Windows 启动时自动运行音乐定时管家</div>
+          </div>
+          <div class="switch" id="autoStartSwitch" onclick="toggleAutoStart()"></div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-name">默认音量</div>
+            <div class="setting-desc">程序启动时使用的音量</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px">
+            <input type="range" class="volume-slider" style="width:140px" min="0" max="100" value="70" id="defaultVol"
+                   oninput="document.getElementById('defaultVolVal').textContent=this.value">
+            <span style="font-size:13px; min-width:42px" id="defaultVolVal">70%</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-name">托盘常驻</div>
+            <div class="setting-desc">关闭窗口时最小化到系统托盘，任务后台运行</div>
+          </div>
+          <div class="switch on" onclick="this.classList.toggle('on'); toast('托盘常驻已切换（原型演示）')"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-accent" style="width:100px" onclick="closeModal('settingsModal')">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 关于模态框 ==================== -->
+<div class="modal-mask" id="aboutModal">
+  <div class="modal" style="width:min(480px,92vw)">
+    <div class="modal-body">
+      <div class="about-hero">
+        <div class="about-logo">♪</div>
+        <div class="about-name">音乐定时管家</div>
+        <div class="about-ver">版本 1.0.0 · Windows 桌面音乐定时播放软件</div>
+      </div>
+
+      <div class="card" style="margin-top:20px">
+        <div style="font-size:13px; font-weight:600; color:var(--accent-lighter); margin-bottom:10px">功能特性</div>
+        <div style="font-size:12px; color:var(--text-secondary); line-height:2">
+          · 支持 MP3 / AAC / FLAC 等常见音频格式<br>
+          · 秒级精度的多任务定时播放（自研调度引擎）<br>
+          · 任务时间冲突自动检测与保护<br>
+          · 不依赖 Windows 计划任务程序<br>
+          · 开机自启 + 系统托盘常驻
+        </div>
+      </div>
+
+      <div class="copyright-box">
+        <div style="font-size:13px; font-weight:600; color:var(--accent-lighter); margin-bottom:6px">版权声明</div>
+        <div class="copyright-main">版权所有 © 张巍强</div>
+        <div class="copyright-sub">All rights reserved. 未经授权禁止复制、传播或商业使用。</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-accent" style="width:120px" onclick="closeModal('aboutModal')">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==================== 数据 ==================== */
+let tasks = [
+  { id: 1, name: '晨间背景音乐', start: '09:00:00', end: '10:00:00', repeat: '每天', repeatRaw: 'daily', tracks: 3, enabled: true },
+  { id: 2, name: '午休轻音乐', start: '12:30:00', end: '13:30:00', repeat: '每天', repeatRaw: 'daily', tracks: 5, enabled: true },
+  { id: 3, name: '周五晚间电台', start: '19:00:00', end: '21:00:00', repeat: '每周 五', repeatRaw: 'weekly', tracks: 12, enabled: true },
+  { id: 4, name: '生日特别播放', start: '10:00:00', end: '10:30:00', repeat: '一次性 2026-10-18', repeatRaw: 'once', tracks: 1, enabled: false },
+];
+let nextId = 5;
+let editingId = null;
+let playTimer = null;
+
+/* ==================== 时钟 ==================== */
+function tickClock() {
+  const now = new Date();
+  const p = n => String(n).padStart(2, '0');
+  document.getElementById('clock').textContent =
+    `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}  ${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+}
+setInterval(tickClock, 500); tickClock();
+
+/* ==================== 任务列表 ==================== */
+function renderTasks() {
+  const list = document.getElementById('taskList');
+  list.innerHTML = '';
+  tasks.forEach((t, i) => {
+    const card = document.createElement('div');
+    card.className = 'task-card';
+    card.style.animationDelay = (i * 0.04) + 's';
+    card.innerHTML = `
+      <div class="task-info">
+        <div class="task-name-row">
+          <span class="task-name">${esc(t.name)}</span>
+          <span class="task-badge">${esc(t.repeat)}</span>
+        </div>
+        <div class="task-meta">
+          <span>⏱</span>
+          <span class="time">${t.start} - ${t.end}</span>
+          <span class="sep">·</span>
+          <span class="task-status ${t.enabled ? '' : ''}" style="${t.enabled ? 'color:var(--success)' : 'color:var(--text-tertiary)'}">${t.enabled ? '已启用' : '已停用'}</span>
+          <span class="sep">·</span>
+          <span>${t.tracks} 首</span>
+        </div>
+      </div>
+      <div class="task-actions">
+        <div class="switch ${t.enabled ? 'on' : ''}" title="启用/停用" onclick="toggleTask(${t.id})"></div>
+        <button class="btn btn-sm" onclick="runNow(${t.id})">▶ 立即</button>
+        <button class="btn btn-sm" onclick="openTaskEdit(${t.id})">编辑</button>
+        <button class="btn btn-sm btn-danger-ghost" onclick="deleteTask(${t.id})">删除</button>
+      </div>`;
+    list.appendChild(card);
+  });
+  document.getElementById('emptyState').classList.toggle('show', tasks.length === 0);
+  updateNextTask();
+}
+
+function toggleTask(id) {
+  const t = tasks.find(x => x.id === id);
+  t.enabled = !t.enabled;
+  renderTasks();
+  toast(t.enabled ? `已启用「${t.name}」` : `已停用「${t.name}」`);
+}
+
+function runNow(id) {
+  const t = tasks.find(x => x.id === id);
+  startPlayback(t.name + '（手动播放）');
+}
+
+function deleteTask(id) {
+  const t = tasks.find(x => x.id === id);
+  if (confirm(`确定删除任务「${t.name}」？`)) {
+    tasks = tasks.filter(x => x.id !== id);
+    renderTasks();
+    toast(`已删除「${t.name}」`, 'danger');
+  }
+}
+
+function updateNextTask() {
+  // 找今天最早的未触发任务（演示逻辑）
+  const el = document.getElementById('nextTaskText');
+  const now = new Date();
+  const candidates = tasks.filter(t => t.enabled)
+    .map(t => t.start)
+    .sort();
+  const next = candidates.find(s => s > fmtHMS(now));
+  if (next) {
+    el.textContent = `下一次：${next}（${untilText(next)}后）`;
+  } else if (candidates.length) {
+    el.textContent = `下一次：明天 ${candidates[0]}`;
+  } else {
+    el.textContent = '暂无待执行任务';
+  }
+}
+setInterval(updateNextTask, 1000);
+
+function fmtHMS(d) {
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function untilText(hms) {
+  const [h, m, s] = hms.split(':').map(Number);
+  const now = new Date();
+  let diff = (h * 3600 + m * 60 + s) - (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds());
+  if (diff < 0) diff += 86400;
+  const hh = Math.floor(diff / 3600), mm = Math.floor(diff % 3600 / 60), ss = diff % 60;
+  if (hh > 0) return `${hh}时${mm}分`;
+  if (mm > 0) return `${mm}分${ss}秒`;
+  return `${ss}秒`;
+}
+
+/* ==================== 播放器模拟 ==================== */
+let playing = false, pos = 0, dur = 222;
+function togglePlay() {
+  if (playing) { pausePlayback(); } else { resumePlayback(); }
+}
+function resumePlayback() {
+  playing = true;
+  document.getElementById('playBtn').textContent = '⏸';
+  document.getElementById('cover').classList.add('playing');
+  setStatus(`<span class="playing-dot"></span>正在播放`);
+  clearInterval(playTimer);
+  playTimer = setInterval(() => {
+    pos += 0.5;
+    if (pos >= dur) pos = 0;
+    updateProgress();
+  }, 500);
+}
+function pausePlayback() {
+  playing = false;
+  document.getElementById('playBtn').textContent = '▶';
+  document.getElementById('cover').classList.remove('playing');
+  setStatus('已暂停');
+  clearInterval(playTimer);
+}
+function stopPlayback() {
+  playing = false;
+  pos = 0;
+  clearInterval(playTimer);
+  document.getElementById('playBtn').textContent = '▶';
+  document.getElementById('cover').classList.remove('playing');
+  document.getElementById('nowTitle').textContent = '（未播放）';
+  document.getElementById('nowTask').textContent = '等待定时任务触发…';
+  updateProgress();
+  setStatus('<span style="color:var(--text-tertiary)">就绪</span>');
+}
+function startPlayback(label) {
+  pos = 0;
+  document.getElementById('nowTitle').textContent = '清晨.mp3';
+  document.getElementById('nowTask').textContent = label;
+  resumePlayback();
+  toast(`任务触发：${label}`);
+}
+function updateProgress() {
+  document.getElementById('progressBar').style.width = (pos / dur * 100) + '%';
+  document.getElementById('posTime').textContent = fmtTime(pos);
+  document.getElementById('durTime').textContent = fmtTime(dur);
+}
+function fmtTime(s) {
+  const m = Math.floor(s / 60), ss = Math.floor(s % 60);
+  return `${m}:${String(ss).padStart(2, '0')}`;
+}
+function seekProgress(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  pos = (e.clientX - rect.left) / rect.width * dur;
+  updateProgress();
+}
+function setStatus(html) { document.getElementById('statusText').innerHTML = html; }
+
+/* ==================== 模态框 ==================== */
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-mask').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+
+/* ==================== 任务编辑 ==================== */
+function onRepeatChange() {
+  const v = document.getElementById('fRepeat').value;
+  document.getElementById('onceBox').style.display = v === 'once' ? '' : 'none';
+  document.getElementById('weekBox').style.display = v === 'weekly' ? '' : 'none';
+}
+document.getElementById('weekDays').addEventListener('click', e => {
+  const day = e.target.closest('.week-day');
+  if (day) day.classList.toggle('checked');
+});
+
+function openTaskEdit(id) {
+  editingId = id;
+  const box = document.getElementById('conflictBox');
+  box.classList.remove('show');
+  if (id === null) {
+    document.getElementById('taskEditTitle').textContent = '新建播放任务';
+    document.getElementById('fName').value = '新任务';
+    document.getElementById('fStart').value = '09:00:00';
+    document.getElementById('fEnd').value = '10:00:00';
+    document.getElementById('fRepeat').value = 'daily';
+    document.getElementById('fMode').value = 'sequential';
+    document.getElementById('fEnabled').classList.add('on');
+  } else {
+    const t = tasks.find(x => x.id === id);
+    document.getElementById('taskEditTitle').textContent = `编辑任务 - ${t.name}`;
+    document.getElementById('fName').value = t.name;
+    document.getElementById('fStart').value = t.start;
+    document.getElementById('fEnd').value = t.end;
+    document.getElementById('fRepeat').value = t.repeatRaw;
+    document.getElementById('fMode').value = 'sequential';
+    document.getElementById('fEnabled').classList.toggle('on', t.enabled);
+  }
+  onRepeatChange();
+  openModal('taskEditModal');
+}
+
+function parseHMS(s) {
+  const m = s.trim().match(/^(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+  if (!m) return null;
+  const [h, mi, se] = [+m[1], +m[2], +m[3]];
+  if (h > 23 || mi > 59 || se > 59) return null;
+  return h * 3600 + mi * 60 + se;
+}
+function hms(sec) {
+  const p = n => String(n).padStart(2, '0');
+  return `${p(Math.floor(sec/3600))}:${p(Math.floor(sec%3600/60))}:${p(sec%60)}`;
+}
+
+function addDemoTrack() {
+  const names = ['夜曲.mp3', '晴天.flac', '告白气球.aac', '稻香.m4a', '彩虹.wav'];
+  const box = document.getElementById('playlistBox');
+  const item = document.createElement('div');
+  item.className = 'track-item';
+  item.innerHTML = `
+    <div>
+      <div class="track-name">D:\\Music\\${names[Math.floor(Math.random()*names.length)]}</div>
+      <div class="track-exists">文件存在 · 时长 ${Math.floor(2+Math.random()*4)}:${String(Math.floor(Math.random()*60)).padStart(2,'0')}</div>
+    </div>
+    <div class="track-mini-actions">
+      <button class="btn btn-sm" onclick="toast('上移（原型演示）')">↑</button>
+      <button class="btn btn-sm" onclick="toast('下移（原型演示）')">↓</button>
+      <button class="btn btn-sm" onclick="this.closest('.track-item').remove(); updateTrackCount()">移除</button>
+    </div>`;
+  box.appendChild(item);
+  updateTrackCount();
+}
+function updateTrackCount() {
+  const n = document.querySelectorAll('#playlistBox .track-item').length;
+  document.getElementById('trackCount').textContent = `共 ${n} 首`;
+}
+
+/* 冲突检测（展开未来 7 天区间重叠判定，与 C# ConflictDetector 同逻辑） */
+function overlaps(a1, a2, b1, b2) { return a1 < b2 && b1 < a2; }
+
+function detectConflicts(candidate, days = 7) {
+  const results = [];
+  const c1 = parseHMS(candidate.start), c2 = parseHMS(candidate.end);
+  if (c1 === null || c2 === null || c2 <= c1) return results;
+
+  const dayMs = 86400000;
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  for (const other of tasks) {
+    if (other.id === candidate.id || !other.enabled) continue;
+    const o1 = parseHMS(other.start), o2 = parseHMS(other.end);
+    if (o1 === null || o2 === null) continue;
+
+    // 演示逻辑：按重复规则在未来 7 天内逐日比较
+    let found = false;
+    for (let d = 0; d <= days && !found; d++) {
+      const day = new Date(today.getTime() + d * dayMs);
+      if (!appliesOn(candidate, day) || !appliesOn(other, day)) continue;
+      const a1 = d * 86400 + c1, a2 = d * 86400 + c2;
+      const b1 = d * 86400 + o1, b2 = d * 86400 + o2;
+      if (overlaps(a1, a2, b1, b2)) {
+        const ov1 = Math.max(a1, b1), ov2 = Math.min(a2, b2);
+        const dateStr = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
+        results.push(`与任务「${other.name}」冲突：${dateStr} ${hms(ov1 % 86400)} ~ ${hms(ov2 % 86400)}`);
+        found = true;
+      }
+    }
+  }
+  return results;
+}
+
+function appliesOn(task, day) {
+  if (task.repeatRaw === 'daily') return true;
+  if (task.repeatRaw === 'weekly') return day.getDay() === (task.weekDay ?? day.getDay()); // 简化演示
+  if (task.repeatRaw === 'once') return true; // 简化演示
+  return true;
+}
+
+function saveTask() {
+  const name = document.getElementById('fName').value.trim();
+  const start = document.getElementById('fStart').value;
+  const end = document.getElementById('fEnd').value;
+  const box = document.getElementById('conflictBox');
+
+  // 校验
+  document.getElementById('fStart').classList.remove('invalid');
+  document.getElementById('fEnd').classList.remove('invalid');
+
+  if (!name) { toast('请输入任务名称', 'danger'); return; }
+  const s1 = parseHMS(start), s2 = parseHMS(end);
+  if (s1 === null) { document.getElementById('fStart').classList.add('invalid'); toast('开始时间格式错误，应为 HH:MM:SS', 'danger'); return; }
+  if (s2 === null) { document.getElementById('fEnd').classList.add('invalid'); toast('结束时间格式错误，应为 HH:MM:SS', 'danger'); return; }
+  if (s2 <= s1) { toast('结束时间必须大于开始时间', 'danger'); return; }
+  const trackCount = document.querySelectorAll('#playlistBox .track-item').length;
+  if (trackCount === 0) { toast('请至少添加一首音乐', 'danger'); return; }
+
+  const repeatSel = document.getElementById('fRepeat').value;
+  let repeatText, weekDay = undefined;
+  if (repeatSel === 'daily') repeatText = '每天';
+  else if (repeatSel === 'weekly') {
+    const checked = [...document.querySelectorAll('#weekDays .week-day.checked')].map(w => w.textContent.trim());
+    if (checked.length === 0) { toast('每周重复需至少选择一天', 'danger'); return; }
+    repeatText = '每周 ' + checked.join(' ');
+    weekDay = ['周日','周一','周二','周三','周四','周五','周六'].indexOf(checked[0].replace('周','周'));
+  } else repeatText = '一次性 ' + (document.getElementById('fDate').value || '2026-10-18');
+
+  const candidate = {
+    id: editingId ?? nextId, name, start, end,
+    repeatRaw: repeatSel, repeat: repeatText, weekDay,
+    tracks: trackCount,
+    enabled: document.getElementById('fEnabled').classList.contains('on')
+  };
+
+  // 冲突检测
+  const conflicts = detectConflicts(candidate);
+  if (conflicts.length > 0) {
+    box.classList.add('show');
+    document.getElementById('conflictDetail').innerHTML = conflicts.map(c => `· ${c}`).join('<br>');
+    return;
+  }
+
+  // 保存
+  if (editingId !== null) {
+    const idx = tasks.findIndex(t => t.id === editingId);
+    tasks[idx] = candidate;
+    toast(`任务「${name}」已更新`, 'success');
+  } else {
+    tasks.push(candidate);
+    nextId++;
+    toast(`任务「${name}」已保存`, 'success');
+  }
+  closeModal('taskEditModal');
+  renderTasks();
+}
+
+/* ==================== 设置 ==================== */
+function toggleAutoStart() {
+  const sw = document.getElementById('autoStartSwitch');
+  sw.classList.toggle('on');
+  if (sw.classList.contains('on')) {
+    toast('已开启开机自启（写入注册表 HKCU\\...\\Run）', 'success');
+  } else {
+    toast('已关闭开机自启（移除注册表键值）');
+  }
+}
+
+/* ==================== Toast ==================== */
+let toastTimer = null;
+function toast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* 初始化 */
+renderTasks();
+updateTrackCount();
+</script>
+</body>
+</html>
