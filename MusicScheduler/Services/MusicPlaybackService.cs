@@ -84,6 +84,24 @@ public partial class MusicPlaybackService : ObservableObject
         }
     }
 
+    /// <summary>
+    /// UI 音量滑杆（TwoWay 绑定 VolumePercent）变化 → 立即应用到 VolumeSampleProvider。
+    /// 不经 Volume 属性回写 VolumePercent，避免触发循环。
+    /// </summary>
+    partial void OnVolumePercentChanged(double value)
+    {
+        var v = (float)Math.Clamp(value / 100.0, 0f, 1f);
+        if (Math.Abs(v - _volumeValue) < 0.001f) return;
+        _volumeValue = v;
+        lock (_lock)
+        {
+            if (_volume is not null)
+            {
+                try { _volume.Volume = v; } catch { }
+            }
+        }
+    }
+
     /// <summary>绑定均衡器配置（外部设置变更后调用 ApplyEqualizer 立即生效）。</summary>
     public void BindEqualizer(EqualizerSettings settings)
     {

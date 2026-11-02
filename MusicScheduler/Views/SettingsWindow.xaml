@@ -45,7 +45,9 @@
                             <TextBlock Text="程序启动时使用的音量" FontSize="11" Foreground="{StaticResource TextTertiary}" Margin="0,4,0,0"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <Slider Width="160" Minimum="0" Maximum="100" Style="{StaticResource DarkSlider}" Value="{Binding DefaultVolume}" VerticalAlignment="Center"/>
+                            <Slider Width="160" Minimum="0" Maximum="100" Style="{StaticResource DarkSlider}"
+                                    Value="{Binding DefaultVolume}" VerticalAlignment="Center"
+                                    TickFrequency="1" IsSnapToTickEnabled="True"/>
                             <TextBlock Text="{Binding DefaultVolume, StringFormat=\{0:0\}%}" FontSize="13" Foreground="{StaticResource TextSecondary}" Margin="10,0,0,0" VerticalAlignment="Center" MinWidth="42"/>
                         </StackPanel>
                     </Grid>

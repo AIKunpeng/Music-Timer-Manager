@@ -36,9 +36,18 @@ public partial class AppState : ObservableObject
 
     public event Action? TasksChanged;
 
+    /// <summary>
+    /// 构造/加载期间为 true：抑制自动保存。
+    /// 否则 ctor 中读取自启状态会先触发保存，用内存默认值覆盖磁盘上的用户设置。
+    /// </summary>
+    private bool _suppressSave;
+
     public AppState()
     {
-        AutoStart = SystemService.IsAutoStartEnabled();
+        _suppressSave = true;
+        // 直接写字段，避免触发 OnAutoStartChanged → SaveSettings（此时尚未 LoadSettings）
+        autoStart = SystemService.IsAutoStartEnabled();
+        _suppressSave = false;
         LoadSettings();
     }
 
@@ -74,28 +83,33 @@ public partial class AppState : ObservableObject
             var json = File.ReadAllText(SettingsPath);
             if (string.IsNullOrWhiteSpace(json)) return;
             var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("DefaultVolume", out var v))
-                DefaultVolume = v.GetDouble();
-            if (doc.RootElement.TryGetProperty("FadeSeconds", out var f))
-                FadeSeconds = f.GetDouble();
-            if (doc.RootElement.TryGetProperty("AutoStart", out var a))
+            // 加载期间抑制保存：赋值触发的 OnXxxChanged 不应回写磁盘
+            _suppressSave = true;
+            try
             {
-                AutoStart = a.GetBoolean();
-                // 反向不触发保存
-            }
-            if (doc.RootElement.TryGetProperty("Equalizer", out var eq))
-            {
-                var b = eq.EnumerateObject();
-                var idx = 0;
-                foreach (var p in b)
+                if (doc.RootElement.TryGetProperty("DefaultVolume", out var v))
+                    DefaultVolume = v.GetDouble();
+                if (doc.RootElement.TryGetProperty("FadeSeconds", out var f))
+                    FadeSeconds = f.GetDouble();
+                if (doc.RootElement.TryGetProperty("AutoStart", out var a))
                 {
-                    if (p.Name.StartsWith("B") && p.Name.Length <= 3 && idx < 10)
+                    AutoStart = a.GetBoolean();
+                }
+                if (doc.RootElement.TryGetProperty("Equalizer", out var eq))
+                {
+                    var b = eq.EnumerateObject();
+                    var idx = 0;
+                    foreach (var p in b)
                     {
-                        Equalizer.SetBand(idx, (float)p.Value.GetDouble());
-                        idx++;
+                        if (p.Name.StartsWith("B") && p.Name.Length <= 3 && idx < 10)
+                        {
+                            Equalizer.SetBand(idx, (float)p.Value.GetDouble());
+                            idx++;
+                        }
                     }
                 }
             }
+            finally { _suppressSave = false; }
         }
         catch (Exception ex)
         {
@@ -105,12 +119,14 @@ public partial class AppState : ObservableObject
 
     public void SaveSettings()
     {
+        if (_suppressSave) return;
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
             var data = new
             {
-                DefaultVolume,
+                // 音量按整数百分比落盘，避免 53.48993288590602 这类滑杆像素值
+                DefaultVolume = Math.Round(DefaultVolume),
                 FadeSeconds,
                 AutoStart,
                 Equalizer = new

@@ -107,6 +107,8 @@ public partial class App : Application
         {
             _playback = new MusicPlaybackService();
             _playback.BindEqualizer(_state.Equalizer);
+            // 启动音量取设置页的"默认音量"（%）
+            _playback.Volume = (float)Math.Clamp(_state.DefaultVolume / 100.0, 0f, 1f);
             Log("MusicPlaybackService 初始化完成");
         }
         catch (Exception ex) { Log($"[FATAL] MusicPlaybackService 初始化失败: {ex}"); throw; }
