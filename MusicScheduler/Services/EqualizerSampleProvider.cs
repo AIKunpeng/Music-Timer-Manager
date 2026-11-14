@@ -12,7 +12,12 @@ namespace MusicScheduler.Services;
 public class EqualizerSampleProvider : ISampleProvider
 {
     private readonly ISampleProvider _source;
-    private readonly BiQuadFilter[] _bands;
+    /// <summary>
+    /// 滤波器组。Read 在 WASAPI 音频线程调用，Update 在 UI 线程调用；
+    /// 更新时整体替换数组引用（原子交换），音频线程取局部快照，
+    /// 避免逐字段改写系数时读到新旧混合状态产生爆音。
+    /// </summary>
+    private volatile BiQuadFilter[] _bands;
     private readonly int _channels;
     private readonly float _sampleRate;
 
@@ -31,14 +36,16 @@ public class EqualizerSampleProvider : ISampleProvider
         }
     }
 
-    /// <summary>更新所有频段增益（dB）。</summary>
+    /// <summary>更新所有频段增益（dB）。整体构建新数组后原子交换引用。</summary>
     public void Update(EqualizerSettings settings)
     {
         if (settings is null) return;
-        for (int i = 0; i < _bands.Length; i++)
+        var newBands = new BiQuadFilter[_bands.Length];
+        for (int i = 0; i < newBands.Length; i++)
         {
-            _bands[i].SetPeakingEq(_sampleRate, EqualizerSettings.CenterFrequencies[i], 1.0f, settings.GetBand(i));
+            newBands[i] = BiQuadFilter.PeakingEQ(_sampleRate, EqualizerSettings.CenterFrequencies[i], 1.0f, settings.GetBand(i));
         }
+        _bands = newBands;
     }
 
     public int Read(float[] buffer, int offset, int count)
@@ -46,15 +53,16 @@ public class EqualizerSampleProvider : ISampleProvider
         int read = _source.Read(buffer, offset, count);
         if (read <= 0) return read;
 
+        var bands = _bands; // 局部快照：本帧内滤波器组不会中途被替换
         int frames = read / _channels;
         for (int f = 0; f < frames; f++)
         {
             for (int c = 0; c < _channels; c++)
             {
                 float sample = buffer[offset + f * _channels + c];
-                for (int b = 0; b < _bands.Length; b++)
+                for (int b = 0; b < bands.Length; b++)
                 {
-                    sample = _bands[b].Transform(sample);
+                    sample = bands[b].Transform(sample);
                 }
                 buffer[offset + f * _channels + c] = sample;
             }

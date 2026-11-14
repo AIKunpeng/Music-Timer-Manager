@@ -20,6 +20,8 @@ public class ToastService
     private readonly ConcurrentQueue<ToastItem> _queue = new();
     private bool _showing;
     private readonly Dispatcher _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+    /// <summary>缓存宿主容器：Window.FindName 无法命中代码创建且未 RegisterName 的元素，每次 FindName 都返回 null 会导致宿主无限累积。</summary>
+    private Panel? _toastHost;
 
     public void Show(string message, string level = "info", double durationSeconds = 3)
     {
@@ -38,25 +40,23 @@ public class ToastService
         var main = Application.Current?.MainWindow;
         if (main is null) { _showing = false; return; }
 
-        // 创建容器（如果还没有）
-        var host = main.FindName("ToastHost") as Panel;
+        // 创建容器（单例服务用字段缓存，避免每次 Toast 新建宿主）
+        var host = _toastHost;
         if (host is null)
         {
+            if (main.Content is not Grid g) { _showing = false; return; }
             host = new StackPanel
             {
                 Orientation = Orientation.Vertical,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 0, 24, 56)
+                Margin = new Thickness(0, 0, 24, 56),
+                IsHitTestVisible = false
             };
-            host.Name = "ToastHost";
-            // 找到底层 Grid 加入到主 Grid 中
-            if (main.Content is Grid g && g.Children is UIElementCollection children)
-            {
-                Grid.SetRowSpan(host, Math.Max(1, g.RowDefinitions.Count));
-                Grid.SetColumnSpan(host, Math.Max(1, g.ColumnDefinitions.Count));
-                children.Add(host);
-            }
+            Grid.SetRowSpan(host, Math.Max(1, g.RowDefinitions.Count));
+            Grid.SetColumnSpan(host, Math.Max(1, g.ColumnDefinitions.Count));
+            g.Children.Add(host);
+            _toastHost = host;
         }
 
         var border = CreateToastBorder(item);
@@ -94,13 +94,18 @@ public class ToastService
                 To = 0,
                 Duration = TimeSpan.FromMilliseconds(220)
             };
-            slideOut.Completed += (_, _) =>
+            border.BeginAnimation(Border.MarginProperty, slideOut);
+            border.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+            // 兜底移除：不依赖动画 Completed（窗口关闭/隐藏时 Completed 不触发，
+            // 会卡死 _showing 导致后续 Toast 永久积压）。280ms > 220ms 动画时长。
+            var cleanup = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(280) };
+            cleanup.Tick += (_, _) =>
             {
+                cleanup.Stop();
                 host.Children.Remove(border);
                 ShowNext();
             };
-            border.BeginAnimation(Border.MarginProperty, slideOut);
-            border.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+            cleanup.Start();
         };
         timer.Start();
     }

@@ -110,7 +110,8 @@ public partial class MainViewModel : ObservableObject
             ToastService.Instance.Show("该任务没有可播放的音乐。", "warning");
             return;
         }
-        _playback.Start(task);
+        // 经调度器手动播放：接管结束时间/淡入淡出，避免被上一个定时任务的结束时间砍停
+        _scheduler.PlayManually(task);
         StatusText = $"▶ 手动播放：{task.Name}";
     }
 

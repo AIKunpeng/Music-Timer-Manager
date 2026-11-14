@@ -285,7 +285,7 @@ public partial class MusicPlaybackService : ObservableObject
         lock (_lock)
         {
             if (_activeTask is null || _activeTask.Tracks.Count == 0) return;
-            StopInternal(raiseEvent: false);
+            StopInternal(raiseEvent: false, restoreEq: false);
             _currentIndex = (_currentIndex + 1) % _activeTask.Tracks.Count;
             PlayCurrent();
         }
@@ -296,7 +296,7 @@ public partial class MusicPlaybackService : ObservableObject
         lock (_lock)
         {
             if (_activeTask is null || _activeTask.Tracks.Count == 0) return;
-            StopInternal(raiseEvent: false);
+            StopInternal(raiseEvent: false, restoreEq: false);
             _currentIndex = (_currentIndex - 1 + _activeTask.Tracks.Count) % _activeTask.Tracks.Count;
             PlayCurrent();
         }
@@ -344,7 +344,7 @@ public partial class MusicPlaybackService : ObservableObject
             catch (Exception ex)
             {
                 Logger.LogError($"播放失败 {track.FilePath}：{ex.Message}");
-                StopInternal(raiseEvent: false);
+                StopInternal(raiseEvent: false, restoreEq: false);
                 _currentIndex++;
             }
         }
@@ -394,13 +394,13 @@ public partial class MusicPlaybackService : ObservableObject
 
             if (_activeTask.Mode == PlaybackMode.Loop)
             {
-                StopInternal(raiseEvent: false);
+                StopInternal(raiseEvent: false, restoreEq: false);
                 _currentIndex = (_currentIndex + 1) % Math.Max(1, _activeTask.Tracks.Count);
                 PlayCurrent();
             }
             else
             {
-                StopInternal(raiseEvent: false);
+                StopInternal(raiseEvent: false, restoreEq: false);
                 _currentIndex++;
                 if (_currentIndex < _activeTask.Tracks.Count)
                 {
@@ -417,7 +417,12 @@ public partial class MusicPlaybackService : ObservableObject
         }
     }
 
-    private void StopInternal(bool raiseEvent = true)
+    /// <summary>
+    /// 停止内部实现。
+    /// restoreEq=false 用于曲目级切换（续播/切歌/单曲失败），此时任务仍在进行，
+    /// 不应提前还原全局 EQ，否则任务专属预设只对第一首歌生效。
+    /// </summary>
+    private void StopInternal(bool raiseEvent = true, bool restoreEq = true)
     {
         _trackMonitorCts?.Cancel();
         _trackMonitorCts = null;
@@ -453,8 +458,8 @@ public partial class MusicPlaybackService : ObservableObject
         IsSeeking = false;
         _currentTrackTitle = string.Empty;
 
-        // 还原任务开始前快照的全局 EQ（仅在任务指定过 EqPreset 时才生效）
-        RestoreGlobalEqualizer();
+        // 还原任务开始前快照的全局 EQ（仅在任务级停止时执行，曲目切换不还原）
+        if (restoreEq) RestoreGlobalEqualizer();
 
         if (raiseEvent)
         {

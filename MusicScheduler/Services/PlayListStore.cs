@@ -45,8 +45,24 @@ public class PlayListStore
         catch (Exception ex)
         {
             Logger.LogError($"读取播放列表库失败：{ex.Message}");
+            BackupCorruptFile("播放列表库");
             return new List<PlayList>();
         }
+    }
+
+    /// <summary>
+    /// 读取失败时把原文件备份为 *.corrupt-时间戳，防止后续 Save 用空列表覆盖导致数据永久丢失。
+    /// </summary>
+    private void BackupCorruptFile(string label)
+    {
+        try
+        {
+            if (!File.Exists(FilePath)) return;
+            var bak = $"{FilePath}.corrupt-{DateTime.Now:yyyyMMdd-HHmmss}";
+            File.Copy(FilePath, bak, overwrite: true);
+            Logger.LogError($"检测到{label}文件损坏，已备份为：{Path.GetFileName(bak)}");
+        }
+        catch { /* 备份失败不影响主流程 */ }
     }
 
     public void Save(List<PlayList> lists)

@@ -62,6 +62,38 @@ public class TaskSchedulerService : IDisposable
         }
     }
 
+    /// <summary>
+    /// 手动立即播放任务：接管生命周期管理，与定时触发行为一致。
+    /// 修复：此前 UI 直接调用 playback.Start 绕过调度器，导致手动播放
+    /// 被上一个定时任务的结束时间砍停、且不享受淡入淡出。
+    /// 不写入 _triggeredToday/HasRun：手动试听不影响今天的定时触发计划。
+    /// </summary>
+    public void PlayManually(PlayTask task)
+    {
+        if (task is null || task.Tracks.Count == 0) return;
+        lock (_lock)
+        {
+            var now = DateTime.Now;
+            if (_currentRunningTask is not null)
+            {
+                var old = _currentRunningTask;
+                _playback.Stop();
+                _fadeOutTriggered = false;
+                TaskEnded?.Invoke(old, now);
+            }
+            _playback.Start(task);
+            _currentRunningTask = task;
+            // 当天结束时间已过 → 不设结束时间（一直播到用户手动停止或下一任务触发）
+            var end = now.Date + task.EndTime;
+            _currentEndAt = end > now ? end : null;
+            Logger.Log($"手动播放：{task.Name}，{(_currentEndAt is not null ? $"将在 {_currentEndAt:HH:mm:ss} 结束" : "无结束时间限制")}");
+            TaskStarted?.Invoke(task, now);
+
+            var fs = Math.Max(0, _state.FadeSeconds);
+            if (fs > 0) _playback.BeginFadeIn(fs);
+        }
+    }
+
     public PlayTask? GetNextPendingTask()
     {
         lock (_lock)

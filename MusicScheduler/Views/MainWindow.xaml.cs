@@ -291,7 +291,12 @@ public class EqBandVm : ObservableObject
     public double Value
     {
         get => _value;
-        set => SetProperty(ref _value, Math.Clamp(value, -12, 12));
+        set
+        {
+            // DbText 依赖 _value，必须一并通知，否则 dB 标签永不刷新
+            if (SetProperty(ref _value, Math.Clamp(value, -12, 12)))
+                OnPropertyChanged(nameof(DbText));
+        }
     }
     public string DbText => $"{_value:+0;-0;0} dB";
 }

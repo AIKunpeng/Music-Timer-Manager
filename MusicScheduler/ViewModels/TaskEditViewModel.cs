@@ -247,6 +247,17 @@ public partial class TaskEditViewModel : ObservableObject
             return false;
         }
 
+        // 快照当前值：_editing 与主界面任务列表共享同一实例，
+        // 冲突拒绝保存时必须回滚，否则卡片显示与磁盘数据不一致
+        var snapName = _editing.Name;
+        var snapStart = _editing.StartTime;
+        var snapEnd = _editing.EndTime;
+        var snapRepeat = _editing.Repeat;
+        var snapMode = _editing.Mode;
+        var snapEnabled = _editing.IsEnabled;
+        var snapEq = _editing.EqPreset;
+        var snapTracks = _editing.Tracks;
+
         _editing.Name = Name.Trim();
         _editing.StartTime = StartTime;
         _editing.EndTime = EndTime;
@@ -264,6 +275,15 @@ public partial class TaskEditViewModel : ObservableObject
         var conflicts = ConflictDetector.Detect(_editing, _state.Tasks, daysAhead: 7);
         if (conflicts.Count > 0)
         {
+            // 冲突：回滚内存态，保持主界面卡片与磁盘数据一致
+            _editing.Name = snapName;
+            _editing.StartTime = snapStart;
+            _editing.EndTime = snapEnd;
+            _editing.Repeat = snapRepeat;
+            _editing.Mode = snapMode;
+            _editing.IsEnabled = snapEnabled;
+            _editing.EqPreset = snapEq;
+            _editing.Tracks = snapTracks;
             HasConflict = true;
             ConflictMessage = string.Join("\n", conflicts.Select(c => c.Description));
             return false;
