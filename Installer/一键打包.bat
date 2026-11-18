@@ -1,24 +1,41 @@
 @echo off
-chcp 65001 >nul
-title éŸ³ä¹å®šæ—¶ç®¡å®¶ - ä¸€é”®æ‰“åŒ…
-cd /d "%~dp0.."
+rem Ò»¼ü´ò°ü£º±ØÐëÓë build-release.ps1 ·ÅÔÚÍ¬Ò»Ä¿Â¼£¨Installer£©£¬Ë«»÷ÔËÐÐ¼´¿É
+rem ×¢Òâ£º±¾ÎÄ¼þ±ØÐë±£´æÎª ANSI/GBK ±àÂë£¬ÖÐÎÄ Windows µÄ cmd Ä¬ÈÏ´úÂëÒ³ 936 ²ÅÄÜÕýÈ·½âÎö
+title ÒôÀÖ¶¨Ê±¹Ü¼Ò - Ò»¼ü´ò°ü
 
-rem â”€â”€ ç¡®ä¿ dotnet å¯ç”¨ï¼ˆæœªåŠ å…¥ PATH æ—¶ä½¿ç”¨é»˜è®¤å®‰è£…ä½ç½®ï¼‰â”€â”€
+rem ©¤©¤ ¶¨Î»ÏîÄ¿¸ùÄ¿Â¼£¨±¾ÎÄ¼þÔÚ Installer\ ÏÂ£©©¤©¤
+cd /d "%~dp0.."
+if errorlevel 1 (
+    echo [´íÎó] ÎÞ·¨¶¨Î»ÏîÄ¿¸ùÄ¿Â¼¡£ÇëÎð°Ñ±¾ÎÄ¼þµ¥¶À¸´ÖÆµ½×ÀÃæµÈÎ»ÖÃÔËÐÐ£¬
+    echo        ÇëÖ±½ÓË«»÷ D:\Develop\×ÀÃæÒôÀÖ¿ØÖÆÈí¼þ\Installer\Ò»¼ü´ò°ü.bat
+    pause
+    exit /b 1
+)
+
+rem ©¤©¤ Ð£Ñé´ò°ü½Å±¾ÊÇ·ñ´æÔÚ ©¤©¤
+if not exist "%~dp0build-release.ps1" (
+    echo [´íÎó] ÕÒ²»µ½´ò°ü½Å±¾ build-release.ps1
+    echo        Ò»¼ü´ò°ü.bat ±ØÐëÓë build-release.ps1 Î»ÓÚÍ¬Ò»Ä¿Â¼ Installer ÏÂ
+    pause
+    exit /b 1
+)
+
+rem ©¤©¤ Ð£Ñé .NET SDK ©¤©¤
 if not exist "%ProgramFiles%\dotnet\dotnet.exe" (
-    echo [é”™è¯¯] æœªæ‰¾åˆ° .NET SDKï¼Œè¯·å…ˆå®‰è£… .NET 8 SDK
-    echo        ä¸‹è½½: https://dotnet.microsoft.com/download/dotnet/8.0
+    echo [´íÎó] Î´ÕÒµ½ .NET SDK£¬ÇëÏÈ°²×° .NET 8 SDK
+    echo        ÏÂÔØ: https://dotnet.microsoft.com/download/dotnet/8.0
     pause
     exit /b 1
 )
 set "PATH=%ProgramFiles%\dotnet;%PATH%"
 
 echo ==============================================
-echo   éŸ³ä¹å®šæ—¶ç®¡å®¶ ä¸€é”®æ‰“åŒ…ï¼ˆ4 ç±»äº§ç‰©ï¼‰
-echo   [1/4] ç»¿è‰²ç‰ˆ-å•æ–‡ä»¶  [2/4] ç»¿è‰²ç‰ˆ+zip
-echo   [3/4] å®‰è£…ç‰ˆ payload [4/4] å®‰è£…ç‰ˆ Setup
+echo   ÒôÀÖ¶¨Ê±¹Ü¼Ò Ò»¼ü´ò°ü£¨4 Àà²úÎï£©
+echo   [1/4] ÂÌÉ«°æ-µ¥ÎÄ¼þ  [2/4] ÂÌÉ«°æ+zip
+echo   [3/4] °²×°°æ payload [4/4] °²×°°æ Setup
 echo ==============================================
 echo.
-echo é¢„è®¡è€—æ—¶ 2-4 åˆ†é’Ÿï¼Œè¯·å‹¿å…³é—­æœ¬çª—å£...
+echo Ô¤¼ÆºÄÊ± 2-4 ·ÖÖÓ£¬ÇëÎð¹Ø±Õ±¾´°¿Ú...
 echo.
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-release.ps1"
@@ -26,10 +43,10 @@ set "RC=%ERRORLEVEL%"
 
 echo.
 if "%RC%"=="0" (
-    echo [å®Œæˆ] æ‰“åŒ…æˆåŠŸï¼Œäº§ç‰©è§ dist ç›®å½•ï¼š
+    echo [Íê³É] ´ò°ü³É¹¦£¬²úÎï¼û dist Ä¿Â¼£º
     dir /b /o-d dist\*.exe dist\*.zip 2>nul
 ) else (
-    echo [å¤±è´¥] æ‰“åŒ…è„šæœ¬é€€å‡ºç  %RC%ï¼Œè¯·å‘ä¸Šæ»šåŠ¨æŸ¥çœ‹å…·ä½“é”™è¯¯
+    echo [Ê§°Ü] ´ò°ü½Å±¾ÍË³öÂë %RC%£¬ÇëÏòÉÏ¹ö¶¯²é¿´¾ßÌå´íÎó
 )
 echo.
 pause
